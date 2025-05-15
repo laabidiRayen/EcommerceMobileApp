@@ -1,5 +1,6 @@
 package com.example.data.di
 
+import android.util.Log
 import com.example.businesslogic.network.NetworkService
 import com.example.data.di.network.NetworkServiceImpl
 import io.ktor.client.HttpClient
@@ -14,7 +15,6 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single {
-
         HttpClient(CIO) {
             install(ContentNegotiation) {
                 json(Json {
@@ -22,13 +22,12 @@ val networkModule = module {
                     isLenient = true
                     ignoreUnknownKeys = true
                 })
-
             }
             install(Logging) {
                 level = LogLevel.ALL
                 logger = object : Logger {
                     override fun log(message: String) {
-                        println("BackendHandler : $message")
+                        Log.d("BackEndHandler", message)
                     }
                 }
             }

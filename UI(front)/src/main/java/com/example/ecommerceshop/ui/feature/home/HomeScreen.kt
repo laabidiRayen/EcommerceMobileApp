@@ -1,17 +1,8 @@
 package com.example.ecommerceshop.ui.feature.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,11 +34,8 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,22 +44,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCbrt
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.businesslogic.model.Product
-import com.example.ecommerceshop.navigation.NavRoutes.ProductDetails
 import com.example.ecommerceshop.R
+import com.example.ecommerceshop.model.UiProductModel
+import com.example.ecommerceshop.navigation.ProductDetails
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.HomeScreen(
-    navController: NavController,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    viewModel: HomeViewModel = koinViewModel()
-) {
+fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinViewModel()) {
     val uiState = viewModel.uiState.collectAsState()
     val loading = remember {
         mutableStateOf(false)
@@ -106,7 +90,7 @@ fun SharedTransitionScope.HomeScreen(
                     val data = (uiState.value as HomeScreenUIEvents.Success)
                     feature.value = data.featured
                     popular.value = data.popularProducts
-                    categories.value = data.categories.map { it.title }
+                    categories.value = data.categories
                     loading.value = false
                     error.value = null
                 }
@@ -117,16 +101,11 @@ fun SharedTransitionScope.HomeScreen(
                     error.value = errorMsg
                 }
             }
-            HomeContent(animatedVisibilityScope,
-                feature.value,
-                popular.value,
-                categories.value,
-                loading.value,
-                error.value,
-                onItemClick = {
-                    navController.navigate(ProductDetails(it))
-                },
-                onCategoryClicked = {})
+            HomeContent(
+                feature.value, popular.value, categories.value, loading.value, error.value, onClick = {
+                    navController.navigate(ProductDetails(UiProductModel.fromProduct(it)))
+                }
+            )
         }
     }
 }
@@ -173,69 +152,59 @@ fun ProfileHeader() {
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.HomeContent(
-    animatedVisibilityScope: AnimatedVisibilityScope,
+fun HomeContent(
     featured: List<Product>,
     popularProducts: List<Product>,
     categories: List<String>,
     isLoading: Boolean = false,
     errorMsg: String? = null,
-    onItemClick: (Product) -> Unit,
-    onCategoryClicked: (String) -> Unit
+    onClick: (Product) -> Unit
 ) {
-    Column {
-
-        ProfileHeader()
-        Spacer(modifier = Modifier.size(16.dp))
-        SearchBar(value = "", onTextChanged = {})
-        Spacer(modifier = Modifier.size(16.dp))
-
-        if (isLoading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(50.dp))
-                Text(text = "Loading...", style = MaterialTheme.typography.bodyMedium)
+    LazyColumn {
+        item {
+            ProfileHeader()
+            Spacer(modifier = Modifier.size(16.dp))
+            SearchBar(value = "", onTextChanged = {})
+            Spacer(modifier = Modifier.size(16.dp))
+        }
+        item {
+            if (isLoading) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(50.dp))
+                    Text(text = "Loading...", style = MaterialTheme.typography.bodyMedium)
+                }
             }
-        } else if (errorMsg != null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = errorMsg, style = MaterialTheme.typography.bodyMedium)
+            errorMsg?.let {
+                Text(text = it, style = MaterialTheme.typography.bodyMedium)
             }
-        } else {
             if (categories.isNotEmpty()) {
                 LazyRow {
                     items(categories, key = { it }) { category ->
-                        var isVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            isVisible = true
+                        val isVisible = remember {
+                            mutableStateOf(false)
                         }
-
+                        LaunchedEffect(true) {
+                            isVisible.value = true
+                        }
                         AnimatedVisibility(
-                            visible = isVisible, enter = fadeIn() + expandHorizontally()
+                            visible = isVisible.value, enter = fadeIn() + expandVertically()
                         ) {
-                            Text(text = category.replaceFirstChar { it.uppercase() },
+                            Text(
+                                text = category.replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier
                                     .padding(horizontal = 8.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { onCategoryClicked(category) }
                                     .background(MaterialTheme.colorScheme.primary)
                                     .padding(8.dp)
-                                    .animateItem())
+                            )
                         }
                     }
 
@@ -243,20 +212,14 @@ fun SharedTransitionScope.HomeContent(
                 Spacer(modifier = Modifier.size(16.dp))
             }
             if (featured.isNotEmpty()) {
-                HomeProductRow(
-                    products = featured,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    title = "Featured",
-                    onItemClick = onItemClick
-                )
+                HomeProductRow(products = featured, title = "Featured", onClick = onClick)
                 Spacer(modifier = Modifier.size(16.dp))
             }
             if (popularProducts.isNotEmpty()) {
                 HomeProductRow(
                     products = popularProducts,
-                    animatedVisibilityScope = animatedVisibilityScope,
                     title = "Popular Products",
-                    onItemClick = onItemClick
+                    onClick = onClick
                 )
             }
         }
@@ -293,14 +256,8 @@ fun SearchBar(value: String, onTextChanged: (String) -> Unit) {
 
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.HomeProductRow(
-    products: List<Product>,
-    title: String,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onItemClick: (Product) -> Unit
-) {
+fun HomeProductRow(products: List<Product>, title: String, onClick: (Product) -> Unit) {
     Column {
         Box(
             modifier = Modifier
@@ -325,21 +282,18 @@ fun SharedTransitionScope.HomeProductRow(
             )
         }
         Spacer(modifier = Modifier.size(8.dp))
-        LazyRow() {
-            items(products, key = { it }) { product ->
-                var isVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    isVisible = true
+        LazyRow {
+            items(products, key = { it.id }) { product ->
+                val isVisible = remember {
+                    mutableStateOf(false)
                 }
-                AnimatedVisibility(
-                    visible = isVisible, enter = fadeIn() + expandVertically()
+                LaunchedEffect(true) {
+                    isVisible.value = true
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isVisible.value, enter = fadeIn() + expandVertically()
                 ) {
-                    ProductItem(
-                        Modifier.animateItem(),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        product = product,
-                        onItemClick = onItemClick
-                    )
+                    ProductItem(product = product, onClick)
                 }
             }
         }
@@ -347,21 +301,13 @@ fun SharedTransitionScope.HomeProductRow(
 }
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.ProductItem(
-    modifier: Modifier,
-    product: Product,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onItemClick: (Product) -> Unit
-) {
+fun ProductItem(product: Product, onClick: (Product) -> Unit) {
     Card(
-        modifier = modifier
+        modifier = Modifier
             .padding(horizontal = 8.dp)
             .size(width = 126.dp, height = 144.dp)
-            .clickable {
-                onItemClick(product)
-            },
+            .clickable { onClick(product) },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f))
     ) {
@@ -372,27 +318,12 @@ fun SharedTransitionScope.ProductItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(96.dp)
-                    .background(Color.White)
-                    .sharedElement(
-                        state = rememberSharedContentState(key = "image/${product.id}"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = { _, _ ->
-                            tween(durationMillis = 300)
-                        }
-                    ),
-                contentScale = ContentScale.Inside
             )
             Spacer(modifier = Modifier.size(8.dp))
             Text(
                 text = product.title,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 8.dp).sharedElement(
-                    state = rememberSharedContentState(key = "title/${product.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    boundsTransform = { _, _ ->
-                        tween(durationMillis = 300)
-                    }
-                ),
+                modifier = Modifier.padding(horizontal = 8.dp),
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -400,13 +331,7 @@ fun SharedTransitionScope.ProductItem(
             Text(
                 text = "$${product.price}",
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 8.dp).sharedElement(
-                    state = rememberSharedContentState(key = "price/${product.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    boundsTransform = { _, _ ->
-                        tween(durationMillis = 300)
-                    }
-                ),
+                modifier = Modifier.padding(horizontal = 8.dp),
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
             )

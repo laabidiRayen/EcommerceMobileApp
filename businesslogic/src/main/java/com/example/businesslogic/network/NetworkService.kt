@@ -1,18 +1,24 @@
 package com.example.businesslogic.network
 
-import com.example.businesslogic.model.CartItem
-import com.example.businesslogic.model.Product
-import com.example.businesslogic.model.response.CartResponse
-import com.example.businesslogic.model.response.CategoryResponse
-import com.example.businesslogic.model.response.ProductResponse
+import com.example.businesslogic.model.CartItemModel
+import com.example.businesslogic.model.CartModel
+import com.example.businesslogic.model.CartSummary
+import com.example.businesslogic.model.CategoriesListModel
+import com.example.businesslogic.model.ProductListModel
+import com.example.businesslogic.model.request.AddCartRequestModel
 
 interface NetworkService {
-    suspend fun getProducts(category: Int?): ResultWrapper<ProductResponse>
-    suspend fun getCategories(): ResultWrapper<CategoryResponse>
-    suspend fun addProductToCart(product: Product, userId: Int): ResultWrapper<CartResponse>
-    suspend fun getCart(userId: Int): ResultWrapper<CartResponse>
-    suspend fun updateQuantity(cartItem: CartItem, userId: Int): ResultWrapper<CartResponse>
-    suspend fun removeProductFromCart(cartItemId: Int, userId: Int): ResultWrapper<CartResponse>
+    suspend fun getProducts(category: Int?): ResultWrapper<ProductListModel>
+    suspend fun getCategories(): ResultWrapper<CategoriesListModel>
+
+    suspend fun addProductToCart(
+        request: AddCartRequestModel
+    ): ResultWrapper<CartModel>
+
+    suspend fun getCart(): ResultWrapper<CartModel>
+    suspend fun updateQuantity(cartItemModel: CartItemModel): ResultWrapper<CartModel>
+    suspend fun deleteItem(cartItemId: Int, userId: Int): ResultWrapper<CartModel>
+    suspend fun getCartSummary(userId: Int): ResultWrapper<CartSummary>
 }
 
 sealed class ResultWrapper<out T> {

@@ -1,40 +1,35 @@
 package com.example.ecommerceshop.ui.feature.cart
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,253 +41,177 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.businesslogic.model.CartItem
+import com.example.data.di.model.response.CartItem
+import com.example.businesslogic.model.CartItemModel
 import com.example.ecommerceshop.R
+import com.example.ecommerceshop.navigation.CartSummaryScreen
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CartScreen(
-    navController: NavController,
-    viewModel: CartViewModel = koinViewModel(),
-) {
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val cartItems = viewModel.cartItems.collectAsState()
+fun CartScreen(navController: NavController, viewModel: CartViewModel = koinViewModel()) {
+
+    val uiState = viewModel.uiState.collectAsState()
+    val cartItems = remember {
+        mutableStateOf(emptyList<CartItemModel>())
+    }
     val loading = remember {
         mutableStateOf(false)
-    }
-    val items = remember {
-        mutableStateOf(emptyList<CartItem>())
     }
     val errorMsg = remember {
         mutableStateOf<String?>(null)
     }
-    LaunchedEffect(cartItems.value) {
-        when (cartItems.value) {
+    LaunchedEffect(uiState.value) {
+        when (uiState.value) {
             is CartEvent.Loading -> {
                 loading.value = true
                 errorMsg.value = null
-                showBottomSheet = false
             }
 
             is CartEvent.Error -> {
+                // Show error
                 loading.value = false
-                errorMsg.value = (cartItems.value as CartEvent.Error).message
-                showBottomSheet = true
+                errorMsg.value = (uiState.value as CartEvent.Error).message
             }
 
             is CartEvent.Success -> {
-                val data = (cartItems.value as CartEvent.Success).cartItems
-                items.value = data
                 loading.value = false
-                showBottomSheet = false
-                errorMsg.value = null
-
+                val data = (uiState.value as CartEvent.Success).message
+                if (data.isEmpty()) {
+                    errorMsg.value = "No items in cart"
+                } else {
+                    cartItems.value = data
+                }
             }
-
         }
     }
-
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
         val pullToRefreshState = rememberPullToRefreshState()
         if (pullToRefreshState.isRefreshing) {
             LaunchedEffect(true) {
-                viewModel.refresh()
-                delay(1000)
+                viewModel.getCart()
+                delay(500)
                 pullToRefreshState.endRefresh()
             }
         }
+
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshContainer(
-                modifier = Modifier.align(Alignment.TopCenter),
-                state = pullToRefreshState,
+                state = pullToRefreshState, modifier = Modifier.align(Alignment.TopCenter)
             )
             Column(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .nestedScroll(pullToRefreshState.nestedScrollConnection)
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp)
+                    .padding(16.dp)
             ) {
-                Text(
-                    text = "Cart",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                val shouldShowList = items.value.isNotEmpty()
-                items.value.let {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f)
-                    ) {
-                        items(it, key = { it.id }) { cartItem ->
-                            CartItemRow(modifier = Modifier.animateItem(),
-                                cartItem = cartItem,
-                                onRemoveClick = {
-                                    viewModel.deleteItem(it)
-                                },
-                                onQuantityAdd = {
-                                    if (cartItems.value is CartEvent.Loading) return@CartItemRow
-                                    viewModel.increaseQuantity(it)
-                                },
-                                onQuantityRemove = {
-                                    if (cartItems.value is CartEvent.Loading) return@CartItemRow
-                                    viewModel.decreaseQuantity(it)
-                                }
-
-                            )
-                        }
-
-                    }
-                }
-
-                if (shouldShowList && cartItems.value !is CartEvent.Loading) {
-                    Button(
-                        onClick = { }, modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Proceed to Checkout")
-                    }
-                }
+                Text(text = "Cart", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.size(8.dp))
+                val shouldShowList = !loading.value && errorMsg.value == null
                 AnimatedVisibility(
-                    items.value.isEmpty() && cartItems.value !is CartEvent.Loading, enter = fadeIn()
+                    visible = shouldShowList, enter = fadeIn(), modifier = Modifier.weight(1f)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text(text = "No Item in cart", modifier = Modifier.align(Alignment.Center))
+                    LazyColumn {
+                        items(cartItems.value) { item ->
+                            CartItem(item = item,
+                                onIncrement = { viewModel.incrementQuantity(it) },
+                                onDecrement = { viewModel.decrementQuantity(it) },
+                                onRemove = { viewModel.removeItem(it) })
+                        }
                     }
                 }
-            }
-            AnimatedVisibility(loading.value, enter = fadeIn(), exit = fadeOut()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Color.Black.copy(alpha = 0.4f)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                if (shouldShowList) {
+                    Button(
+                        onClick = { navController.navigate(CartSummaryScreen) },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(50.dp))
-                        Text(text = "Loading...")
+                        Text(text = "Checkout")
                     }
                 }
             }
+            if (loading.value) {
+                // Show loading
+                Column(modifier = Modifier.align(Alignment.Center)) {
+                    CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                    Text(text = "Loading...")
+                }
+            }
+            if (errorMsg.value != null) {
+                Text(
+                    text = errorMsg.value ?: "Something went wrong!",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
         }
     }
 
-    // Bottom sheet dialog for API errors
-    if (showBottomSheet) {
-        ModalBottomSheet(sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            onDismissRequest = {
-                showBottomSheet = false
-            },
-            content = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Error",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(text = errorMsg.value ?: "An unexpected error occurred.")
-                    Button(
-                        onClick = {
-                            showBottomSheet = false  // Dismiss the bottom sheet
-                        }, modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(text = "Dismiss")
-                    }
-                }
-            })
-    }
 }
 
 @Composable
-fun CartItemRow(
-    modifier: Modifier = Modifier,
-    cartItem: CartItem,
-    onRemoveClick: (CartItem) -> Unit,
-    onQuantityAdd: (CartItem) -> Unit,
-    onQuantityRemove: (CartItem) -> Unit,
+fun CartItem(
+    item: CartItemModel,
+    onIncrement: (CartItemModel) -> Unit,
+    onDecrement: (CartItemModel) -> Unit,
+    onRemove: (CartItemModel) -> Unit
 ) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.LightGray.copy(alpha = 0.2f)),
-        horizontalArrangement = Arrangement.SpaceBetween,
-
-        ) {
+            .background(Color.LightGray.copy(alpha = 0.4f))
+    ) {
         AsyncImage(
-            model = cartItem.imageUrl,
+            model = item.imageUrl,
             contentDescription = null,
-            modifier = Modifier.size(width = 126.dp, height = 96.dp),
+            modifier = Modifier.size(126.dp, 96.dp),
             contentScale = ContentScale.Crop
         )
-        Spacer(modifier = Modifier.width(8.dp))
-
+        Spacer(modifier = Modifier.size(8.dp))
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(), verticalArrangement = Arrangement.Center
+                .fillMaxHeight()
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text = cartItem.productName,
+                text = item.productName,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.size(4.dp))
             Text(
-                text = "$${String.format("%.2f", cartItem.price)}",
+                text = "$${item.price}",
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Column(
-            modifier = Modifier,
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.End
-        ) {
-            IconButton(onClick = { onRemoveClick(cartItem) }) {
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.End) {
+
+            IconButton(onClick = { onRemove(item) }) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_delete),
-                    contentDescription = "Remove"
+                    painter = painterResource(id = R.drawable.ic_delete), contentDescription = null
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
 
-            //quanitity with + and - circle button
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {
-                    onQuantityAdd(cartItem)
-
-                }) {
+                IconButton(onClick = { onIncrement(item) }) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_add),
-                        contentDescription = "Add"
+                        painter = painterResource(id = R.drawable.ic_add), contentDescription = null
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = cartItem.quantity.toString())
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = {
-                    onQuantityRemove(cartItem)
-                }) {
+                Text(text = item.quantity.toString())
+                IconButton(onClick = { onDecrement(item) }) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_subtract),
-                        contentDescription = "Remove"
+                        contentDescription = null
                     )
                 }
+
             }
         }
     }
+
 }

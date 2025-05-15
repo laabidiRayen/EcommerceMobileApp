@@ -2,7 +2,6 @@ package com.example.ecommerceshop.ui.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.businesslogic.model.CategoryModel
 import com.example.businesslogic.model.Product
 import com.example.businesslogic.network.ResultWrapper
 import com.example.businesslogic.usecase.GetCategoriesUseCase
@@ -37,11 +36,11 @@ class HomeViewModel(
         }
     }
 
-    private suspend fun getCategory(): List<CategoryModel> {
+    private suspend fun getCategory(): List<String> {
         categoryUseCase.execute().let { result ->
             when (result) {
                 is ResultWrapper.Success -> {
-                    return (result).value.data
+                    return (result).value.categories.map { it.title }
                 }
 
                 is ResultWrapper.Failure -> {
@@ -55,7 +54,7 @@ class HomeViewModel(
         getProductUseCase.execute(category).let { result ->
             when (result) {
                 is ResultWrapper.Success -> {
-                    return (result).value.data
+                    return (result).value.products
                 }
 
                 is ResultWrapper.Failure -> {
@@ -71,7 +70,7 @@ sealed class HomeScreenUIEvents {
     data class Success(
         val featured: List<Product>,
         val popularProducts: List<Product>,
-        val categories: List<CategoryModel>
+        val categories: List<String>
     ) :
         HomeScreenUIEvents()
 

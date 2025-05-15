@@ -1,9 +1,6 @@
 package com.example.businesslogic.model
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class CategoryModel(
+data class Category(
     val id: Int,
     val image: String,
     val title: String

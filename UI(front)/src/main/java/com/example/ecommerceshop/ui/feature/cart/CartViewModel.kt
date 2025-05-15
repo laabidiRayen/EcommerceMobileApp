@@ -2,10 +2,9 @@ package com.example.ecommerceshop.ui.feature.cart
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.businesslogic.model.CartItem
-import com.example.businesslogic.model.response.CartResponse
-import com.example.businesslogic.network.ResultWrapper
-import com.example.businesslogic.usecase.DeleteCartProductUseCase
+import com.example.businesslogic.model.CartItemModel
+import com.example.businesslogic.model.CartModel
+import com.example.businesslogic.usecase.DeleteProductUseCase
 import com.example.businesslogic.usecase.GetCartUseCase
 import com.example.businesslogic.usecase.UpdateQuantityUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,84 +12,71 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CartViewModel(
-    val userCase: GetCartUseCase,
-    val updateQuantityUseCase: UpdateQuantityUseCase,
-    val delteProductUseCase: DeleteCartProductUseCase
+    val cartUseCase: GetCartUseCase,
+    private val updateQuantityUseCase: UpdateQuantityUseCase,
+    private val deleteItem: DeleteProductUseCase
 ) : ViewModel() {
-    val _cartItems: MutableStateFlow<CartEvent> = MutableStateFlow(CartEvent.Loading)
-    val cartItems = _cartItems.asStateFlow()
-
+    private val _uiState = MutableStateFlow<CartEvent>(CartEvent.Loading)
+    val uiState = _uiState.asStateFlow()
 
     init {
-        getCartItems()
-
+        getCart()
     }
 
-    fun refresh() {
-        getCartItems()
-    }
-
-    private fun getCartItems() {
+    fun getCart() {
         viewModelScope.launch {
-            _cartItems.value = CartEvent.Loading
-            when (val result = userCase.execute(1)) {
-                is ResultWrapper.Success -> {
-                    val cartItems = result.value.data
-                    val totalPrice = cartItems.sumOf { it.price * it.quantity }
-                    _cartItems.value = CartEvent.Success(cartItems, totalPrice)
-                }
+            _uiState.value = CartEvent.Loading
+            cartUseCase.execute().let { result ->
+                when (result) {
+                    is com.example.businesslogic.network.ResultWrapper.Success -> {
+                        _uiState.value = CartEvent.Success(result.value.data)
+                    }
 
-                is ResultWrapper.Failure -> {
-                    _cartItems.value = CartEvent.Error("Something went wrong!")
+                    is com.example.businesslogic.network.ResultWrapper.Failure -> {
+                        _uiState.value = CartEvent.Error("Something went wrong!")
+                    }
                 }
             }
         }
     }
 
-    fun increaseQuantity(cartItem: CartItem) {
-        processQuantity(cartItem.copy(quantity = cartItem.quantity.inc()))
+    fun incrementQuantity(cartItem: CartItemModel) {
+        if(cartItem.quantity==10) return
+        updateQuantity(cartItem.copy(quantity = cartItem.quantity + 1))
     }
 
-    private fun processQuantity(cartItem: CartItem) {
+    fun decrementQuantity(cartItem: CartItemModel) {
+        if(cartItem.quantity==1) return
+        updateQuantity(cartItem.copy(quantity = cartItem.quantity - 1))
+    }
+
+    private fun updateQuantity(cartItem: CartItemModel) {
         viewModelScope.launch {
-            _cartItems.value = CartEvent.Loading
-            when (val result = updateQuantityUseCase.execute(
-                cartItem,
-                cartItem.userId
-            )) {
-                is ResultWrapper.Success<*> -> {
-                    val cartItems = (result.value as CartResponse).data
-                    val totalPrice = cartItems.sumOf { it.price * it.quantity }
-                    _cartItems.value = CartEvent.Success(cartItems, totalPrice)
+            _uiState.value = CartEvent.Loading
+            val result = updateQuantityUseCase.execute(cartItem)
+            when (result) {
+                is com.example.businesslogic.network.ResultWrapper.Success -> {
+                    _uiState.value = CartEvent.Success(result.value.data)
                 }
 
-                is ResultWrapper.Failure -> _cartItems.value =
-                    CartEvent.Error("Failed to increase quantity.")
+                is com.example.businesslogic.network.ResultWrapper.Failure -> {
+                    _uiState.value = CartEvent.Error("Something went wrong!")
+                }
             }
         }
     }
 
-    // Handling Decrease Quantity with error feedback
-    fun decreaseQuantity(cartItem: CartItem) {
+    fun removeItem(cartItem: CartItemModel) {
         viewModelScope.launch {
-            if (cartItem.quantity == 1) {
-                _cartItems.value = CartEvent.Error("Make sure item is greater than 1.")
-                return@launch
-            }
-            processQuantity(cartItem.copy(quantity = cartItem.quantity.dec()))
-        }
-    }
-
-    fun deleteItem(cartItem: CartItem) {
-        viewModelScope.launch {
-            _cartItems.value = CartEvent.Loading
-            when (val result = delteProductUseCase.execute(cartItem.id, cartItem.userId)) {
-                is ResultWrapper.Success<*> -> {
-                    val cartItems = (result.value as CartResponse).data
-                    val totalPrice = cartItems.sumOf { it.price * it.quantity }
-                    _cartItems.value = CartEvent.Success(cartItems, totalPrice)
+            _uiState.value = CartEvent.Loading
+            val result = deleteItem.execute(cartItem.id, 1)
+            when (result) {
+                is com.example.businesslogic.network.ResultWrapper.Success -> {
+                    _uiState.value = CartEvent.Success(result.value.data)
                 }
-                is ResultWrapper.Failure -> _cartItems.value = CartEvent.Error("Failed to delete item.")
+                is com.example.businesslogic.network.ResultWrapper.Failure -> {
+                    _uiState.value = CartEvent.Error("Something went wrong!")
+                }
             }
         }
     }
@@ -98,7 +84,6 @@ class CartViewModel(
 
 sealed class CartEvent {
     data object Loading : CartEvent()
+    data class Success(val message: List<CartItemModel>) : CartEvent()
     data class Error(val message: String) : CartEvent()
-    data class Success(val cartItems: List<CartItem>, val totalPrice: Double) : CartEvent()
-
 }

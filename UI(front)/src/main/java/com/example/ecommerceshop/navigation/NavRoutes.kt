@@ -1,19 +1,19 @@
 package com.example.ecommerceshop.navigation
 
-import com.example.businesslogic.model.Product
+import com.example.ecommerceshop.model.UiProductModel
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class NavRoutes {
-    @Serializable
-    object HomeScreen
+object HomeScreen
 
-    @Serializable
-    object CartScreen
+@Serializable
+object CartScreen
 
-    @Serializable
-    object ProfileScreen
+@Serializable
+object ProfileScreen
 
-    @Serializable
-    data class ProductDetails(val product: Product)
-}
+@Serializable
+object CartSummaryScreen
+
+@Serializable
+data class ProductDetails(val product: UiProductModel)
