@@ -15,7 +15,7 @@ material = "1.12.0"
 koin = "4.0.0-RC1"
 #ktor
 ktor = "2.3.2"
-navigaitonCompose = "2.7.7"
+navigaitonCompose = "2.8.0-alpha08"
 
 
 [libraries]
