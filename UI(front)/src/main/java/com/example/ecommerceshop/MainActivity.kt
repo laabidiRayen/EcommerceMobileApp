@@ -11,10 +11,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -27,25 +25,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.businesslogic.model.Product
 import com.example.ecommerceshop.model.UiProductModel
 import com.example.ecommerceshop.navigation.CartScreen
+import com.example.ecommerceshop.ui.feature.orders.OrdersScreen
 import com.example.ecommerceshop.navigation.CartSummaryScreen
 import com.example.ecommerceshop.navigation.HomeScreen
+import com.example.ecommerceshop.navigation.OrdersScreen
 import com.example.ecommerceshop.navigation.ProductDetails
 import com.example.ecommerceshop.navigation.ProfileScreen
+import com.example.ecommerceshop.navigation.UserAddressRoute
+import com.example.ecommerceshop.navigation.UserAddressRouteWrapper
 import com.example.ecommerceshop.navigation.productNavType
+import com.example.ecommerceshop.navigation.userAddressNavType
 import com.example.ecommerceshop.ui.feature.cart.CartScreen
 import com.example.ecommerceshop.ui.feature.home.HomeScreen
 import com.example.ecommerceshop.ui.feature.product_details.ProductDetailsScreen
 import com.example.ecommerceshop.ui.feature.summary.CartSummaryScreen
+import com.example.ecommerceshop.ui.feature.user_address.UserAddressScreen
 import com.example.ecommerceshop.ui.theme.EcommerceshopTheme
 import kotlin.reflect.typeOf
 
@@ -82,6 +84,11 @@ class MainActivity : ComponentActivity() {
                                 shouldShowBottomNav.value = true
                                 CartScreen(navController)
                             }
+                            composable<OrdersScreen> {
+                                shouldShowBottomNav.value = true
+                                OrdersScreen()
+
+                            }
                             composable<ProfileScreen> {
                                 shouldShowBottomNav.value = true
                                 Box(modifier = Modifier.fillMaxSize()) {
@@ -99,6 +106,16 @@ class MainActivity : ComponentActivity() {
                                 val productRoute = it.toRoute<ProductDetails>()
                                 ProductDetailsScreen(navController, productRoute.product)
                             }
+                            composable<UserAddressRoute>(
+                                typeMap = mapOf(typeOf<UserAddressRouteWrapper>() to userAddressNavType)
+                            ) {
+                                shouldShowBottomNav.value = false
+                                val userAddressRoute = it.toRoute<UserAddressRoute>()
+                                UserAddressScreen(
+                                    navController = navController,
+                                    userAddress = userAddressRoute.userAddressWrapper.userAddress
+                                )
+                            }
                         }
                     }
                 }
@@ -115,7 +132,7 @@ fun BottomNavigationBar(navController: NavController) {
         val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
         val items = listOf(
             BottomNavItems.Home,
-            BottomNavItems.Cart,
+            BottomNavItems.Orders,
             BottomNavItems.Profile
         )
 
@@ -154,6 +171,6 @@ fun BottomNavigationBar(navController: NavController) {
 
 sealed class BottomNavItems(val route: Any, val title: String, val icon: Int) {
     object Home : BottomNavItems(HomeScreen, "Home", icon = R.drawable.ic_home)
-    object Cart : BottomNavItems(CartScreen, "Cart", icon = R.drawable.ic_cart)
+    object Orders : BottomNavItems(OrdersScreen, "Orders", icon = R.drawable.ic_orders)
     object Profile : BottomNavItems(ProfileScreen, "Profile", icon = R.drawable.ic_profile_bn)
 }
