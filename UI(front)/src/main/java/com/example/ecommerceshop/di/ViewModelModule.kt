@@ -1,5 +1,7 @@
 package com.example.ecommerceshop.di
 
+import com.example.ecommerceshop.ui.feature.account.login.LoginViewModel
+import com.example.ecommerceshop.ui.feature.account.register.RegisterViewModel
 import com.example.ecommerceshop.ui.feature.cart.CartViewModel
 import com.example.ecommerceshop.ui.feature.home.HomeViewModel
 import com.example.ecommerceshop.ui.feature.orders.OrdersViewModel
@@ -16,12 +18,20 @@ val viewModelModule = module {
         ProductDetailsViewModel(get())
     }
     viewModel {
-        CartViewModel(get(),get(),get())
+        CartViewModel(get(), get(), get())
     }
     viewModel {
         CartSummaryViewModel(get(), get())
     }
     viewModel {
         OrdersViewModel(get())
+    }
+
+    viewModel {
+        LoginViewModel(get())
+    }
+
+    viewModel {
+        RegisterViewModel(get())
     }
 }

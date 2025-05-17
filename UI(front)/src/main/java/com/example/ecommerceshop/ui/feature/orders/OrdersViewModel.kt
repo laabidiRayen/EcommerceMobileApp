@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.example.businesslogic.usecase.OrderListUseCase
 import androidx.lifecycle.viewModelScope
 import com.example.businesslogic.model.OrdersData
+import com.example.ecommerceshop.ShopperSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -14,7 +15,7 @@ class OrdersViewModel(
 
     private val _ordersEvent = MutableStateFlow<OrdersEvent>(OrdersEvent.Loading)
     val ordersEvent = _ordersEvent.asStateFlow()
-
+    val userDomainModel  = ShopperSession.getUser()
 
     init {
         getOrderList()
@@ -27,7 +28,7 @@ class OrdersViewModel(
 
     private fun getOrderList() {
         viewModelScope.launch {
-            val result = orderListUseCase.execute()
+            val result = orderListUseCase.execute(userDomainModel!!.id!!.toLong())
 
             when (result) {
                 is com.example.businesslogic.network.ResultWrapper.Success -> {

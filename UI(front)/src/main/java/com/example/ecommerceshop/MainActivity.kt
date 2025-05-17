@@ -36,13 +36,17 @@ import com.example.ecommerceshop.navigation.CartScreen
 import com.example.ecommerceshop.ui.feature.orders.OrdersScreen
 import com.example.ecommerceshop.navigation.CartSummaryScreen
 import com.example.ecommerceshop.navigation.HomeScreen
+import com.example.ecommerceshop.navigation.LoginScreen
 import com.example.ecommerceshop.navigation.OrdersScreen
 import com.example.ecommerceshop.navigation.ProductDetails
 import com.example.ecommerceshop.navigation.ProfileScreen
+import com.example.ecommerceshop.navigation.RegisterScreen
 import com.example.ecommerceshop.navigation.UserAddressRoute
 import com.example.ecommerceshop.navigation.UserAddressRouteWrapper
 import com.example.ecommerceshop.navigation.productNavType
 import com.example.ecommerceshop.navigation.userAddressNavType
+import com.example.ecommerceshop.ui.feature.account.login.LoginScreen
+import com.example.ecommerceshop.ui.feature.account.register.RegisterScreen
 import com.example.ecommerceshop.ui.feature.cart.CartScreen
 import com.example.ecommerceshop.ui.feature.home.HomeScreen
 import com.example.ecommerceshop.ui.feature.product_details.ProductDetailsScreen
@@ -75,7 +79,24 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(it)
                     ) {
-                        NavHost(navController = navController, startDestination = HomeScreen) {
+
+                        NavHost(
+                            navController = navController,
+                            startDestination = if (ShopperSession.getUser() != null) {
+                                HomeScreen
+                            } else {
+                                LoginScreen
+                            }
+                        ) {
+
+                            composable<LoginScreen> {
+                                shouldShowBottomNav.value = false
+                                LoginScreen(navController)
+                            }
+                            composable<RegisterScreen> {
+                                shouldShowBottomNav.value = false
+                                RegisterScreen(navController)
+                            }
                             composable<HomeScreen> {
                                 HomeScreen(navController)
                                 shouldShowBottomNav.value = true
@@ -87,7 +108,6 @@ class MainActivity : ComponentActivity() {
                             composable<OrdersScreen> {
                                 shouldShowBottomNav.value = true
                                 OrdersScreen()
-
                             }
                             composable<ProfileScreen> {
                                 shouldShowBottomNav.value = true
@@ -119,7 +139,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
             }
         }
     }
