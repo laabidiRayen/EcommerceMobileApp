@@ -50,6 +50,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.businesslogic.model.Product
 import com.example.ecommerceshop.R
+import com.example.ecommerceshop.ShopperSession
 import com.example.ecommerceshop.model.UiProductModel
 import com.example.ecommerceshop.navigation.CartScreen
 import com.example.ecommerceshop.navigation.ProductDetails
@@ -57,6 +58,9 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinViewModel()) {
+    val user = remember { ShopperSession.getUser() }
+    val name = user?.name ?: "Guest"
+
     val uiState = viewModel.uiState.collectAsState()
     val loading = remember {
         mutableStateOf(false)
@@ -108,6 +112,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinView
                 categories.value,
                 loading.value,
                 error.value,
+                name = name,
                 onClick = {
                     navController.navigate(ProductDetails(UiProductModel.fromProduct(it)))
                 },
@@ -120,7 +125,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinView
 }
 
 @Composable
-fun ProfileHeader(onCartClicked: () -> Unit) {
+fun ProfileHeader(name: String, onCartClicked: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -133,7 +138,9 @@ fun ProfileHeader(onCartClicked: () -> Unit) {
             Image(
                 painter = painterResource(id = R.drawable.ic_profile),
                 contentDescription = null,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
@@ -141,7 +148,7 @@ fun ProfileHeader(onCartClicked: () -> Unit) {
                     text = "Hello,", style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    text = "Rayen Laabidi",
+                    text = name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -161,6 +168,7 @@ fun ProfileHeader(onCartClicked: () -> Unit) {
                     .padding(8.dp),
                 contentScale = ContentScale.Inside
             )
+            Spacer(modifier = Modifier.width(8.dp))
             Image(
                 painter = painterResource(id = R.drawable.ic_cart),
                 contentDescription = null,
@@ -186,12 +194,13 @@ fun HomeContent(
     categories: List<String>,
     isLoading: Boolean = false,
     errorMsg: String? = null,
+    name: String,
     onClick: (Product) -> Unit,
     onCartClicked: () -> Unit
 ) {
     LazyColumn {
         item {
-            ProfileHeader(onCartClicked)
+            ProfileHeader(name = name, onCartClicked = onCartClicked)
             Spacer(modifier = Modifier.size(16.dp))
             SearchBar(value = "", onTextChanged = {})
             Spacer(modifier = Modifier.size(16.dp))

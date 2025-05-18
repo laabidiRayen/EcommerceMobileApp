@@ -32,4 +32,9 @@ object ShopperSession : KoinComponent {
             null
         }
     }
+
+    fun clearUser() {
+        val sharedPref = context.getSharedPreferences("user", Context.MODE_PRIVATE)
+        sharedPref.edit().clear().apply()
+    }
 }

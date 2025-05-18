@@ -7,7 +7,9 @@ import kotlinx.serialization.Serializable
 object HomeScreen
 
 @Serializable
-object LoginScreen
+object LoginScreen {
+    const val route = "login"
+}
 
 @Serializable
 object RegisterScreen

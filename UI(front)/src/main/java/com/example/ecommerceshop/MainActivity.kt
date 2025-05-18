@@ -46,6 +46,7 @@ import com.example.ecommerceshop.navigation.UserAddressRouteWrapper
 import com.example.ecommerceshop.navigation.productNavType
 import com.example.ecommerceshop.navigation.userAddressNavType
 import com.example.ecommerceshop.ui.feature.account.login.LoginScreen
+import com.example.ecommerceshop.ui.feature.account.profile.ProfileScreen
 import com.example.ecommerceshop.ui.feature.account.register.RegisterScreen
 import com.example.ecommerceshop.ui.feature.cart.CartScreen
 import com.example.ecommerceshop.ui.feature.home.HomeScreen
@@ -111,9 +112,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable<ProfileScreen> {
                                 shouldShowBottomNav.value = true
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    Text(text = "Profile")
-                                }
+                                ProfileScreen(navController)
                             }
                             composable<CartSummaryScreen> {
                                 shouldShowBottomNav.value = false
