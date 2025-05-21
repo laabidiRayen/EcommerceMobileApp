@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.generativeai)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -64,4 +66,7 @@ dependencies {
     implementation(libs.compose.navigation)
     implementation(libs.coil.compose)
     implementation (libs.ktor.serialization.kotlinx.json)
+    implementation("com.google.accompanist:accompanist-webview:0.30.1")
+    implementation ("androidx.compose.material:material-icons-extended:1.4.3")
+
 }

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCbrt
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.businesslogic.model.Product
@@ -55,6 +56,10 @@ import com.example.ecommerceshop.model.UiProductModel
 import com.example.ecommerceshop.navigation.CartScreen
 import com.example.ecommerceshop.navigation.ProductDetails
 import org.koin.androidx.compose.koinViewModel
+
+import com.example.ecommerceshop.ui.feature.chatbot.EmbeddedChatbot
+import com.example.ecommerceshop.ui.feature.chatbot.FloatingChatbotIcon
+
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinViewModel()) {
@@ -79,52 +84,84 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = koinView
     val categories = remember {
         mutableStateOf<List<String>>(emptyList())
     }
-    Scaffold {
-        Surface(
+    val showChatbot = remember {
+        mutableStateOf(false)
+    }
+
+    Scaffold { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
+                .padding(paddingValues)
         ) {
-            when (uiState.value) {
-                is HomeScreenUIEvents.Loading -> {
-                    loading.value = true
-                    error.value = null
+
+            // Main Home Content
+            Surface(modifier = Modifier.fillMaxSize()) {
+                when (uiState.value) {
+                    is HomeScreenUIEvents.Loading -> {
+                        loading.value = true
+                        error.value = null
+                    }
+
+                    is HomeScreenUIEvents.Success -> {
+                        val data = (uiState.value as HomeScreenUIEvents.Success)
+                        feature.value = data.featured
+                        popular.value = data.popularProducts
+                        categories.value = data.categories
+                        loading.value = false
+                        error.value = null
+                    }
+
+                    is HomeScreenUIEvents.Error -> {
+                        val errorMsg = (uiState.value as HomeScreenUIEvents.Error).message
+                        loading.value = false
+                        error.value = errorMsg
+                    }
                 }
 
-                is HomeScreenUIEvents.Success -> {
-                    val data = (uiState.value as HomeScreenUIEvents.Success)
-                    feature.value = data.featured
-                    popular.value = data.popularProducts
-                    categories.value = data.categories
-                    loading.value = false
-                    error.value = null
-                }
+                HomeContent(
+                    feature.value,
+                    popular.value,
+                    categories.value,
+                    loading.value,
+                    error.value,
+                    name = name,
+                    onClick = {
+                        navController.navigate(ProductDetails(UiProductModel.fromProduct(it)))
+                    },
+                    onCartClicked = {
+                        navController.navigate(CartScreen)
+                    }
+                )
+            }
 
-                is HomeScreenUIEvents.Error -> {
-                    val errorMsg = (uiState.value as HomeScreenUIEvents.Error).message
-                    loading.value = false
-                    error.value = errorMsg
+            // Floating Chatbot Icon (bottom right)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                FloatingChatbotIcon(onClick = {
+                    showChatbot.value = true
+                })
+            }
+
+            // Embedded Chatbot Popup
+            if (showChatbot.value) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 80.dp, end = 16.dp)
+                        .zIndex(10f)
+                ) {
+                    EmbeddedChatbot(onClose = { showChatbot.value = false })
                 }
             }
-            HomeContent(
-                feature.value,
-                popular.value,
-                categories.value,
-                loading.value,
-                error.value,
-                name = name,
-                onClick = {
-                    navController.navigate(ProductDetails(UiProductModel.fromProduct(it)))
-                },
-                onCartClicked = {
-                    navController.navigate(CartScreen)
-                }
-            )
         }
     }
 }
 
-@Composable
+    @Composable
 fun ProfileHeader(name: String, onCartClicked: () -> Unit) {
     Box(
         modifier = Modifier

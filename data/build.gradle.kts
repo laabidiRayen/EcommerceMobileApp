@@ -48,5 +48,7 @@ dependencies {
     implementation (libs.ktor.client.logging)
     implementation (libs.ktor.client.content.negotiation)
     implementation (libs.ktor.serialization.kotlinx.json)
-
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.generativeai)
+    implementation("com.google.accompanist:accompanist-webview:0.30.1")
 }
